@@ -168,3 +168,11 @@ References -
 -------------
 1. Healthcare Fraud Management using BigData - Whitepaper by Trendwise Analytics
 2. 10 popular health care provider fraud schemes - Fraud Magazine
+
+Kiran's comments - 
+1. Inline Claims, offline claim status
+2. Clarity on what will be acted upon.
+3. Clashes between two entities (different fraud management systems)
+4. APIs on interaction
+5. Incentive for fraud
+6. Feed design for FMS should be provided.
