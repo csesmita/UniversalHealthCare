@@ -67,6 +67,9 @@ If the claim fails authorisation then-
 
 10. Claim Fail Auth - This end state indicates an attempt to file a claim with invalid authentication/authorization of the care provider and/or the beneficiary.
 
+
+
+
 Audited Claim Workflows -
 ---------------------------------
 
@@ -123,6 +126,10 @@ For final state (Claim Acknowledged)
 For claim that have IsFlagged == True
 16. isFraud - Boolean - Indicating if the audit of a claim deems it as a fraudulent claim
 17. Audit Log - Text - Optional field explaining results of audit in detail. It might be updated even in Claims Acknowledged state.
+
+18. Documentation Provided - URLs pointing to documented
+
+19. Doctor's Name - Doctor who carried out this procedure
 
 
 View of Data For Various Entities - Hospital / Health Care Provider
