@@ -1,13 +1,91 @@
 Claims Management
 -------------------
 
-This document enumerates the relation between various modules in the Claims process, in order to -
-1. Reduce or eliminate fraud by relying on historical trends (Fraud Management)
-2. Hasten the process of claims approval while ensuring #1 (Adjudication Recommender)
-3. Associate a trust score to aid in fraud detection and auditing (Trust Score Management) - During claims processing
+Claims Management flow is responsible for ensuring claims originating in the system are adjudicated at the earliest. In order to do so, this flow takes into account inputs from an external Fraud Management System (FMS) which strongly accepts, strongly rejects, or advices TPA intervention for a newly filed and documented claim. Every claim that is adjudicated by the system is fed into the FMS as a data point.
 
-Let us look at fraud, and then examine each of these bocks in Claims Management in detail.
+The interaction between various modules also ensures that any claim adjudicated in the past, may be re-assessed on input from FMS. This is to ensure that with better data, all fraudulent dealings that occurred in the past may also be analysed and corresponding erring entities be penalized. When acting on such recommendations, detailed analyses is provided to the FMS as feedback, along with the case resolution.
 
+Therefore, to summarize, this document enumerates the relation between various modules in the Claims process, in order to -
+1. Ensure faster claims adjudication by assisting IC/TPA in decision making (Adjudication Recommender)
+2. Provide data points for Fraud Management Systems(FMS) to capture trends, patterns and anomalies. 
+3. Be able to consume fraud indicators on past claims from FMS, re-assess them, and feed analyses back to FMS
+
+
+High Level Claims Flow Interaction
+----------------------------------
+----------------------------------
+
+UHC's New Claims Management
+----------------------------
+
+1. New claim processing requested from UHC's Adjudication Recommender System (ARS).
+
+2. ARS requests Policy/Entity Status Details from Policy DB and Claims DB respectively.
+
+3. Policy DB returns details of Policy. Similarly Claims DB returns any internal state flagging the entities, like blacklisting, etc.
+
+If claim is found to not conform to policy, or documentation is non-conformant, or the entiy is blacklisted, it strongly recommendas a rejection of the claim along with the appropriate Reject Code and reason text, and exits. Else, it proceeds.
+
+4. ARS requests a secure SHA-x hash of the entities involved in the claim - doctor, beneficiary and the hospital.
+
+5. Claim Recommendation Requested API - ARS requests a claims recommendation from the Fraud Management System (FMS) based on the hash'ed identifiers of entities involved in the claim (#5), and the claim details itself (claim ID, procedure, amount, number of days the treatment lasted, etc).
+
+6. FMS reverts with a strongly accept, strongly reject, or TPA intervention recommendation based on the information provided in #6. More than one FMS might be requested for this information.
+
+(Various FMS might arrive at this claims' recommendation using historic trends for procedure as well as historic trends on beneficiary, doctor and provider.)
+
+7. ARS may also request for current recommendation on entities and store them for logging purposes (High Tendency towards Fraud, Low Tendency Towards Fraud, Neutral).
+
+8. All information received for the claim from FMS is updated for the claim in the ClaimsDB, including any logging information (entity recommendations may be stored in respective entity databases).
+
+9. ARS recommends acceptance, rejection, or TPA intervention (as received), with any additional claims related information/logs.
+
+10. TPA Action - TPA is required to sign off while adjudicating claims. When doing so, TPA's final action is recorded in the Claims DB.
+
+11. Claim Adjudicated API - TPA's action is sent to FMS along with information on TPA action, claim ID, and any reason text.
+
+
+UHC's Adjudicated Claims Management
+------------------------------------
+
+There will also be provision for older, already adjudicated claims to be audited by FMS. The flow will be as follows -
+
+1. FMS requests Claim Audit - Claim Id, TPA action, hash of entities involved, and audit reason
+
+2. TPA documents analyses which is updated in the Claims DB.
+
+3. Update to Claims DB also triggers an update notification to the FMS, citing case analyses.
+
+4. Audit Status Update - TPA concludes the audit by updating both the Claims DB and FMS with audit anlyses and closure status, along with reason text.
+
+
+                                                  
+                                                        Claims DB   <---
+                                                            |          |
+                                                            |          |
+                                         (1-3). Entities Internal      7. Update Claims
+                                          Status (Blacklist, etc)         DB with Recommendation
+                                                            |          |
+                                                           \|/         |
+                                                 
+Fraud Management System    ------------->     Adjudication Recommendation System (ARS)     -----> Recommend 
+    /|\                                                                                            Action
+     |                 (4-7). Recommendation               /|\  
+     |                                                      |                          
+     |                                           (1-3). Verify Policy Details                 
+     |                                                      |                          
+     |                                                      |                          
+     |                                                 Policy Engine DB                 
+     |                                                                                                                  |
+     |                                                                                                                  |
+     --------------------------------------------------------------------------------------------------------------------
+                                               Claim resolution feeds back as a data point to FMS
+                                               
+
+
+Practical example from a Fraud Management System Provider
+-----------------------------------------------------------
+-----------------------------------------------------------
 
 Examples of Commonly Occurring Fraud
 ---------------------------------------
@@ -104,55 +182,10 @@ Score Management - Claim Score (with Entity Score computed at runtime)
 There is an implicit entity score (provider score and beneficiary score). These are computed at run time to aid computing the claim score. Why are these runtime? A lot of these parameters are based on current trends as well (number of patients treated on this day/week/month, reporting Lags,Treatment Characteristics and Procedures, etc and for beneficiary it might be the number of times claims have been filed in the past week/month/year). Therefore, these scores are moving, and not static. Hence, they will be computed at runtime to arrive at a score for the claim.
 
 
-Tying up Claims Management - How Blocks Interact
--------------------------------------------------
-1. New claim processing requested from Adjudication Engine.
 
-2. Adjudication Recommender System (ARS) requests Policy Details from Policy DB
-
-3. Policy DB returns details of Policy.
-
-4. If claim is found to not conform to policy, it is rejected with appropriate Reject Code, and exits
-
-5. Adjudication Engine requests Trust Management system (TMS) for a Claim Trust Score.
-
-6. TMS requests provider score, beneficiary score, and past trends for this procedure from Fraud Management System (FMS).
-
-7. FMS reverts with historic trends for procedure as well as historic trends on beneficiary and provider.
-
-8. TMS also aggregates current data on beneficiary and provider from the Claims DB
-
-9. TMS arrives at a beneficiary score, provider score, and procedure score from data obtained in #7 and #8
-
-10. TMS aggregates all scores generated in #9 and arrives at a Claim Score.
-
-11. TMS sends a Claim Score to the Adjudication Engine
-
-12. ARS recommends acceptance (claim score > 80%) , rejection (claim score < 30%) or TPA intervention (otherwise).
                                                   
                                                  
-                                                  
-                                                  
-                                                  Claims DB
-                                                      |
-                                                      |
-                                           c. Entities Current Trends
-                                                      |
-                                                     \|/
-                    b. General Historic Trends                        d. Compute Claim Score
-Fraud Management System    ------------->      Trust Management System  ---------- >   Adjudication Engine  -----> Recommend 
-    /|\              of Entities and Procedure                                                                       Action
-     |                                                                                      /|\                         |
-     |                                                                                       |                          |
-     |                                                                                a. Policy Details                 |
-     |                                                                                       |                          |
-     |                                                                                       |                          |
-     |                                                                                 Policy Engine DB                 |
-     |                                                                                                                  |
-     |                                                                                                                  |
-     --------------------------------------------------------------------------------------------------------------------
-                                               Claim resolution feeds back as a data point to FMS
-                                               
+                                       
                                         
 Feedback Loop Augmenting Fraud Detection and Learning
 ------------------------------------------------------
