@@ -15,8 +15,10 @@ High Level Claims Flow Interaction
 ----------------------------------
 ----------------------------------
 
-UHC's New Claims Management
+UHC's New Claims Management 
 ----------------------------
+
+New claims processing deals with flow executed when a new claim is presented to the engine. FMS acts in real time (within the Adjucation recommendation time) when recommending an adjudication action.
 
 1. New claim processing requested from UHC's Adjudication Recommender System (ARS).
 
@@ -63,9 +65,9 @@ If claim is found to not conform to policy, or documentation is non-conformant, 
                                                            |                                          
                                                 (1-3). Verify Policy Details                           
                                                            |                                           
-                                                       ----------------                                
-                                                      |Policy Engine DB|                               
-                                                       ----------------                                
+                                -------------            ----------------                                
+                               |  Entity DB  |          |Policy Engine DB|                               
+                                -------------            ----------------                                                     
                                                                                                        
 
                                                      UHC's New Claims' Flow
@@ -74,9 +76,9 @@ If claim is found to not conform to policy, or documentation is non-conformant, 
 
 
 UHC's Adjudicated Claims' Audit Management
-------------------------------------
+-------------------------------------------
 
-There will also be provision for older, already adjudicated claims to be audited by FMS. The flow will be as follows -
+There will also be provision for older, already adjudicated claims to be audited by FMS. These audits are recommended by FMS asynchronously. The flow will be as follows -
 
 1. FMS recommends Claim Audit to ARS - Claim Id, TPA action, hash of entities involved, and audit reason
 
@@ -106,13 +108,52 @@ TPA concludes the audit by updating both the Claims DB and FMS with audit anlyse
 |Fraud Management System|  ------------->    |Adjudication Recommendation System (ARS)|  ------ 3. Recommend  ---->  | TPA |
  -----------------------                      ----------------------------------------             Audit to TPA       -----
                      1. Audit Recommendation                                                          
-                                                       ----------------                                
-                                                      |Policy Engine DB|                               
-                                                       ----------------                                
+                                                -------------            ----------------                                
+                                               |  Entity DB  |          |Policy Engine DB|                               
+                                                -------------            ----------------                                
                                              
 
                                                 UHC's Adjudicated Claims' Audit Flow
 
+
+Policy Engine Database
+-----------------------
+
+The policy engine DB captures details of all policies in the system, as specified by the Policy Rule Engine. This document does not yet define the Policy Rule Engine , but the idea is there shall be a rule engine accepting a policy as a series of rules. or example - these rules may be specified in a JSON format, and ingested by the rule engine. The rule engine will then store policies in the policy databse.
+
+All policies referenced in claims are looked up in the policy DB. Rules should match the presented in the claim. If a mismatch is found, the claim is rejected.
+
+
+Claims Database
+---------------
+
+Claims DB stores all claims ever to originate in the UHC system. Every claim in the system will have a unique 32-byte claim ID which is generated once when a claim originates. 
+
+
+Entity Database
+-----------------
+
+The entity databse contains information of all entities registered in the UHC system. Every entity in the system will have a unique 32-byte identifier which will be a unique identifier associated when a new entity registers in the system.
+
+Entity Databse (or a similar DB) will also contain a reversible and secure hash of the UHC entity identifier to the anonymised external world identifier. This is done in order to interact with the external world (for example - with FMS) without revealing the actual identity of the entity, without losing out on granularity of information extending to per entity.
+
+
+Adjudication Recommender System (ARS)
+--------------------------------------
+The Adjudication engine acts as a recommender system for Insurers. It will assist the ICs and TPAs to make faster and more data-driven decisions when a new claim is presented. 
+
+It will also recommend audit of previously adjudicated claims, as recommended by Fraud Management System.
+
+The adjudication engine will do the following -
+1. Parse the Policy DB and apply it on the claim presented. 
+   If not found in order, the claim is strongly recommended to be rejected, with the reason code and text.
+
+2. Based on FMS input, the Adjudication Engine will either -
+   a. Strongly recommend Accepting the claim citing relevant reason presented by FMS
+   b. Strongly recommend Rejecting the claim citing relevant reason presented by FMS
+   c. Recommend TPA/IC intervention, otherwise
+
+A TPA sign off is still required in order to set the status of the claims to accepted or rejected. The FMS engine is expected to learn from TPA action on the claim for future.
 
 
 Practical example from a Fraud Management System Provider
@@ -144,27 +185,27 @@ Some examples of data analysed by Fraud Management System are (courtesy Trendwis
 19. Policy holders traveling long distance for treatment which may be available nearby. (Possibly scams by bogus providers.) 
 20. Policy holders letting others use their healthcare cards. 
 
-Therefore, a long term database is desirable to aggregate past trends and present to the Claims engine as required. 
+FMS acts as an anonymised, long term database to aggregate past trends and history of entities, in order to present to the Claims engine as required. 
 
-Claims Trust Score Management Engine
---------------------------------------
-A trust score is the probability that a given claim is not a fraud. 
-A mathematical predictor model will be used in order to arrive at a trust score for any claim that is under processing. 
-Trust score for a claim is computed on both the entities as well as past anonymised trends -
 
-Entities (Health Care Provider and Beneficiary) Related Historic Trends -
-1. Percentage of claims filed by the entities (health care provider, Doctor, or the beneficiary) Accepted with high confidence (Adjudication engine score is >80%)
-2. Percentage of claims filed by the entities (health care provider, Doctor, or the beneficiary) Not Accepted with high confidence (<30% score by Adjucation engine)
-3. Percentage of claims filed by the entities (health care provider, Doctor, or the beneficiary) audited and found fradulent (in retrospect or during claims filing process)
-4. Average billed amount / Billed amount for this procedure
-5. Number of patients treated (if health care provider) on this day/week/month
-6. Reporting Lags
-7. Treatment Characteristics and Procedures
-8. Years of Experience of Doctor
-9. Number of Prior Incidents from Doctor 
-10. Number of Unauthorized claims from the entities
+Examples of Entity-Specific Historic Data
+-------------------------------------------
 
-General Historic Trends (coming from Fraud Management Engine, aggregating stats similar to the examples quoted on fraud) -
+1. Percentage of claims filed by the entities (health care provider, Doctor, or the beneficiary) Recommended Accept/ Audited and Accepted
+2. Percentage of claims filed by the entities (health care provider, Doctor, or the beneficiary) Recommended Not Accepted/ Audited and Found Fraud
+3. Average billed amount / Billed amount for this procedure
+4. Number of patients treated (if health care provider) on this day/week/month
+5. Reporting Lags
+6. Treatment Characteristics and Procedures
+7. Years of Experience of Doctor
+8. Number of Prior Incidents from Doctor 
+9. Number of Unauthorized claims from the entities (rejected by Policy engine)
+...
+
+
+Examples of Aggregated Historic Trends -
+-------------------------------------------
+
 1. Average number of claims filed and accepted with high confidence
 2. Average number of claims filed and not accepted with high confidence
 3. Average number of claims audited and found fraudulent
@@ -179,54 +220,40 @@ General Historic Trends (coming from Fraud Management Engine, aggregating stats 
 12. ...
 
 
-Adjudication Recommender System (ARS)
---------------------------------------
-The Adjudication engine acts as a recommender system for Insurers. It will assist the ICs and TPAs to make faster and more data-driven decisions when a new claim is presented.
-
-The adjudication engine will do the following -
-1. Parse the Policy DB and apply it on the claim presented. 
-   If not found in order, the claim is strongly recommended to be rejected.
-
-2. Based on the Claims Trust Score Engine, the Adjudication Engine will either -
-   a. Strongly recommend Accepting the claim (>80% confidence) citing relevant parameters from Claim Trust Score Engine
-   b. Strongly recommend Rejecting the claim (<30% confidence) citing relevant parameters from Claim Trust Score Engine
-   c. Recommend TPA/IC intervention (30-80% confidence levels)
-
-A TPA sign off is still required in order to set the status of the claims to accepted or rejected. The claims trust score engine is expected to learn from TPA action on the claim for future.
-
-
 Fraud Management System (FMS)
--------------------------
-Fraud Management System is a generic system which will collect anonymised claims data in order to identify current trends and be able to suggest to the Trust Score Engine with higher accuracy.
+------------------------------
+
+A fraud management system is an external entity in the UHC system. It is expected to aid the UHC system in making intelligent decisions to reduce / eliminate fraud. There may be multiple FMS providers in the ecosystem.
+
+FMS systems may be driven by trust score computation when assisting UHC. A trust score is the probability that a given claim is not a fraud. A mathematical predictor model may be used in order to arrive at a trust score for any claim that is under consideration.
+
+Trust score for a claim is computed on both the entities as well as past anonymised trends. There is an implicit entity score (provider score, doctor score, beneficiary score). These are computed at run time to aid computing the claim score. Why are these runtime? A lot of these parameters are based on current trends as well (number of patients treated on this day/week/month, reporting Lags,Treatment Characteristics and Procedures, etc and for beneficiary it might be the number of times claims have been filed in the past week/month/year). Therefore, these scores are moving, and not static. Hence, FMS may calculate entity scores at runtime to arrive at a score for the claim.
+
+Fraud Management System is a generic system which will collect anonymised claims data in order to identify current trends and be able to predict the Trust Score with high accuracy. It is also expected to capture patterns and behaviour of anonymised entities involved in the claim to aid arriving at this score.
 
 This analysis may be applied across Claims, Entities, Procedures, and at geographical units like District, City, State, Country, etc.
 
-This module will also enable data analytics to be run on top of the UHC system in order for various government agencies, insurers and hospitals to monitor the general health of the public.
+FMS providers may also augment data analytics for UHC system in order for various government agencies, insurers and hospitals to monitor the general health of the public.
 
 
-Incentive to Report Fraud -
------------------------------
-In order to assist fraud detection, it is suggested that beneficiaries be given incentives to report fraudulent claims filing. This necessrily means the identity of the reporter should be confidential. This will boost the Fraud management system, and also bring in resistance toengaging in unlawful practises.
+Incentive to Beneficiaries and FMS to Report Fraud -
+-------------------------------------------------------
 
+In order to assist fraud detection, it is suggested that both the beneficiaries and FMS be given incentives to report fraudulent claims and trigger a claims audit. This necessrily means the identity of the beneficiary should be confidential. This will boost the Fraud management system, and also bring in resistance to engaging in unlawful practises.
 
-Score Management - Claim Score (with Entity Score computed at runtime)
-----------------------------------------------------------------------
-There is an implicit entity score (provider score and beneficiary score). These are computed at run time to aid computing the claim score. Why are these runtime? A lot of these parameters are based on current trends as well (number of patients treated on this day/week/month, reporting Lags,Treatment Characteristics and Procedures, etc and for beneficiary it might be the number of times claims have been filed in the past week/month/year). Therefore, these scores are moving, and not static. Hence, they will be computed at runtime to arrive at a score for the claim.
-
-
-
+It is recommended that beneficiaries go through the FMS in order to report fraud, and ensure there is no direct mapping of the beneficiary to its entry in the Entity database.
                                                   
-                                                 
-                                       
-                                        
+
 Feedback Loop Augmenting Fraud Detection and Learning
 ------------------------------------------------------
 
 Every claim feeds back into the fraud management system in order to build a continuous stream of information.
 This ensures -
 1. Historic trends evolve with time
-2. Every data point is captured, and any anomolies can be captured and past claims may be reviewed.
-3. More complex pattern extraction and fraud analysis can be done.
+2. Every data point is captured, and any anomolies can be captured and past claims may be audited.
+3. More complex pattern extraction and fraud analysis/detection can be done.
+
+Therefore, any change to a claim in the claims database should also be passed on to the FMS providers in order to ensure better prediction for future claims.
 
 
 References -
