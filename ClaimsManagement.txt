@@ -24,7 +24,7 @@ UHC's New Claims Management
 
 3. Policy DB returns details of Policy. Similarly Claims DB returns any internal state flagging the entities, like blacklisting, etc.
 
-If claim is found to not conform to policy, or documentation is non-conformant, or the entiy is blacklisted, it strongly recommendas a rejection of the claim along with the appropriate Reject Code and reason text, and exits. Else, it proceeds.
+If claim is found to not conform to policy, or documentation is non-conformant, or the entity is blacklisted, it strongly recommendas a rejection of the claim along with the appropriate Reject Code and reason text, and exits. Else, it proceeds.
 
 4. ARS requests a secure SHA-x hash of the entities involved in the claim - doctor, beneficiary and the hospital.
 
@@ -45,6 +45,34 @@ If claim is found to not conform to policy, or documentation is non-conformant, 
 11. Claim Adjudicated API - TPA's action is sent to FMS along with information on TPA action, claim ID, and any reason text.
 
 
+
+                                                  
+                                                        Claims DB   <---                <---------------           
+                                                            |          |                                |
+                                                            |          |                                |
+                                         (1-3). Entities Internal     8. Update Claims                10. TPA action recorded
+                                          Status (Blacklist, etc)        DB with Recommendation           in ClaimsDB
+                                                            |          |                                |
+                                                           \|/         |                                |
+                                                 
+Fraud Management System    ------------->     Adjudication Recommendation System (ARS)     -----> 9. Recommend 
+    /|\                                                                                              Action
+     |                 (4-7). Recommendation               /|\                                          |
+     |                                                      |                                           |
+     |                                           (1-3). Verify Policy Details                           |
+     |                                                      |                                           |
+     |                                                      |                                           |
+     |                                                 Policy Engine DB                                 |
+     |                                                                                                  |
+     |                                                                                                  |
+     ----------------------------------------------------------------------------------------------------
+                              11. Claim resolution feeds back as a data point to FMS
+                                               
+
+                                          UHC's New Claims' Flow
+
+
+
 UHC's Adjudicated Claims Management
 ------------------------------------
 
@@ -59,28 +87,6 @@ There will also be provision for older, already adjudicated claims to be audited
 4. Audit Status Update - TPA concludes the audit by updating both the Claims DB and FMS with audit anlyses and closure status, along with reason text.
 
 
-                                                  
-                                                        Claims DB   <---
-                                                            |          |
-                                                            |          |
-                                         (1-3). Entities Internal      7. Update Claims
-                                          Status (Blacklist, etc)         DB with Recommendation
-                                                            |          |
-                                                           \|/         |
-                                                 
-Fraud Management System    ------------->     Adjudication Recommendation System (ARS)     -----> Recommend 
-    /|\                                                                                            Action
-     |                 (4-7). Recommendation               /|\  
-     |                                                      |                          
-     |                                           (1-3). Verify Policy Details                 
-     |                                                      |                          
-     |                                                      |                          
-     |                                                 Policy Engine DB                 
-     |                                                                                                                  |
-     |                                                                                                                  |
-     --------------------------------------------------------------------------------------------------------------------
-                                               Claim resolution feeds back as a data point to FMS
-                                               
 
 
 Practical example from a Fraud Management System Provider
