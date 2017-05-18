@@ -40,52 +40,78 @@ If claim is found to not conform to policy, or documentation is non-conformant, 
 
 9. ARS recommends acceptance, rejection, or TPA intervention (as received), with any additional claims related information/logs.
 
-10. TPA Action - TPA is required to sign off while adjudicating claims. When doing so, TPA's final action is recorded in the Claims DB.
+10. TPA Action - TPA is required to sign off while adjudicating claims. When doing so, TPA's final action is received by the ARS
 
-11. Claim Adjudicated API - TPA's action is sent to FMS along with information on TPA action, claim ID, and any reason text.
+11. TPA Action is recorded in the Claims DB.
 
-
-
-                                                  
-                                                        Claims DB   <---                <---------------           
-                                                            |          |                                |
-                                                            |          |                                |
-                                         (1-3). Entities Internal     8. Update Claims                10. TPA action recorded
-                                          Status (Blacklist, etc)        DB with Recommendation           in ClaimsDB
-                                                            |          |                                |
-                                                           \|/         |                                |
-                                                 
-Fraud Management System    ------------->     Adjudication Recommendation System (ARS)     -----> 9. Recommend 
-    /|\                                                                                              Action
-     |                 (4-7). Recommendation               /|\                                          |
-     |                                                      |                                           |
-     |                                           (1-3). Verify Policy Details                           |
-     |                                                      |                                           |
-     |                                                      |                                           |
-     |                                                 Policy Engine DB                                 |
-     |                                                                                                  |
-     |                                                                                                  |
-     ----------------------------------------------------------------------------------------------------
-                              11. Claim resolution feeds back as a data point to FMS
-                                               
-
-                                          UHC's New Claims' Flow
+12. Claim Adjudicated API - TPA's action is sent to FMS along with information on TPA action, claim ID, and any reason text.
 
 
 
-UHC's Adjudicated Claims Management
+                                                       ----------
+                                                      | Claims DB |  <---                <----           
+                                                       ------------    |                      |            
+                                                            |          |                      | 11. TPA action recorded in           
+                                         (1-3). Entities Internal  8. Update Claims           |     Claims DB       
+                                          Status (Blacklist, etc)     DB with Recommendation  |  
+                                                            |          |     -----------------
+                         (4-7). Recommendation             \|/         |    |               10. TPA action recorded    
+ -----------------------  ------------->      ----------------------------------------   <-------------------------   -----
+|Fraud Management System|                    |Adjudication Recommendation System (ARS)|  ------ 9. Recommend  ---->  | TPA |
+ -----------------------  <-------------      ----------------------------------------             Action to TPA      -----
+                        12. Claim resolution              /|\                                         
+                                                           |                                          
+                                                (1-3). Verify Policy Details                           
+                                                           |                                           
+                                                       ----------------                                
+                                                      |Policy Engine DB|                               
+                                                       ----------------                                
+                                                                                                       
+
+                                                     UHC's New Claims' Flow
+
+
+
+
+UHC's Adjudicated Claims' Audit Management
 ------------------------------------
 
 There will also be provision for older, already adjudicated claims to be audited by FMS. The flow will be as follows -
 
-1. FMS requests Claim Audit - Claim Id, TPA action, hash of entities involved, and audit reason
+1. FMS recommends Claim Audit to ARS - Claim Id, TPA action, hash of entities involved, and audit reason
 
-2. TPA documents analyses which is updated in the Claims DB.
+2. ARS updates Clams DB with audit recommendation request for the provided Claim ID.
 
-3. Update to Claims DB also triggers an update notification to the FMS, citing case analyses.
+3. ARS passes on the Claims Audit recommendation to the TPA
 
-4. Audit Status Update - TPA concludes the audit by updating both the Claims DB and FMS with audit anlyses and closure status, along with reason text.
+4. TPA updates cases with analyses and provides it to the ARS
 
+5. TPA analyses is updated in the Claims DB.
+
+6. Update to Claims DB also triggers an update notification to the FMS, citing case analyses.
+
+TPA concludes the audit by updating both the Claims DB and FMS with audit anlyses and closure status, along with reason text.
+                                                  
+
+                                                       ----------
+                                                      | Claims DB |  <----                           
+                                                       ------------       |       
+                                                          /|\             |
+                                                           |              |                                 
+                                                  2. Update Claims     5. Update Audit Status       
+                                                     DB with Audit        with TPA analyses/closure
+                      6. Update Audit Status         Recommendation       |
+                         with TPA analyses/closure         |              |                   4. TPA analyses/closure    
+ -----------------------   <-------------     ----------------------------------------   <-------------------------   -----
+|Fraud Management System|  ------------->    |Adjudication Recommendation System (ARS)|  ------ 3. Recommend  ---->  | TPA |
+ -----------------------                      ----------------------------------------             Audit to TPA       -----
+                     1. Audit Recommendation                                                          
+                                                       ----------------                                
+                                                      |Policy Engine DB|                               
+                                                       ----------------                                
+                                             
+
+                                                UHC's Adjudicated Claims' Audit Flow
 
 
 
