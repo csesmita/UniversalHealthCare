@@ -258,6 +258,72 @@ This ensures -
 Therefore, any change to a claim in the claims database should also be passed on to the FMS providers in order to ensure better prediction for future claims.
 
 
+Multiple FMS Providers in the system -
+----------------------------------------
+There might be multiple FMS providers in the system. Proposed manner of resolving this is as follows -
+1. All FMS providers in the system are queried for Claim Recommendation
+2. All recommendations received from different FMS providers are passed on to the TPA.
+3. TPA, when signing off on adjudication for a claim, will select the recommendation(s) that best adjudicates the claim. If none of the recommendations adjudicate the claim,  then the TPA will provide his/her own reason text.
+4. Recommendations accepted determine, in part, the incentive paid out to the FMS provider.
+
+APIs
+------
+------
+
+APIs Supported by Adjudication Recommendation System Server -
+---------------------------------------------------------------
+1. InsertNewClaim(claim Claim) - Insert New Claim into Claim DB (Claim as defined in Claims Model)
+Response - Error / 200OK
+Response returns with claims ID when successful
+
+2. UpdateClaimWithDocument(claimID, documentType, documentFormat, document) - Update a particular claim with relevant document 
+
+3. GetClaim(claimID) - Gets details of the claim, as well as claims status and any uploaded claim document. It also includes any adjudication recommendation, and recommendation reason text. 
+
+The claim status will indicate whether TPA has signed off the claim or not (FlowType field).
+
+4. Notify TPA of recommendation using asynchronous Pub/Sub method.
+
+5. TPAClaimAdj(claimID, AdjStatus, ReasonCode, Reasontext) - Where AdjStatus is Accept, reject, and reason code and text are as provided by the TPA.
+
+
+APIs Supported by Policy DB Server -
+---------------------------------------------------------------
+
+1. InsertNewPolicy(policy Policy) - 
+
+2. GetPolicyDetails(policyID)
+
+
+APIs Supported by Entity DB Server -
+---------------------------------------------------------------
+1. InsertNewEntity(entityType, entity) - Insert New entity into the system
+Entity Type - (To be defined further) - Hospital, Doctor, IC, TPA, Beneficiary, ...
+Entity - Complete information of the intity as defined by entity type
+
+2. GetEntityDetails(entityID)
+
+3. ClaimAuditRequest(claimID, reasonCode, reasontext) - This is the API invoked by FMS for post-facto processing of an already adjudicated claim.
+
+
+APIs Supported by Claim DB Server -
+---------------------------------------------------------------
+1. insertClaim()
+
+2. updateClaim()
+
+APIs Supported by Fraud Management System Server -
+---------------------------------------------------------------
+
+1. GetClaimRecommendation(newClaim) - newClaim contains the original claim with hash'ed identifiers for all entitites involved  
+Response - Strong Accept, Strongly Reject, Neutral
+Reason Text - Why the claim was recommended as given
+Reason Code - Standard codes for accept/reject - Get this list from TPAs
+(Optional) Entities' Information - Text - Captures textual information on the trust score for entities. 
+
+2. TPAAdjDone(claimID, AdjStatus, RasonCode, ReasonText) - Updates the claim in FMS with TPA action, code and reason text
+
+
 References -
 -------------
 1. Healthcare Fraud Management using BigData - Whitepaper by Trendwise Analytics
